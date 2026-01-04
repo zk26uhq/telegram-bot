@@ -1,4 +1,7 @@
 import uuid
+from solana_check import payment_received
+from telegram import InputFile
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
@@ -23,17 +26,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+async def button_handler
+if query.data == "buy":
+    user_id = query.from_user.id
+    memo = generate_memo(user_id)
 
-    if query.data == "buy":
-        user_id = query.from_user.id
-        memo = generate_memo(user_id)
+    add_user(user_id, memo)
 
-        add_user(user_id, memo)
-
-        text = f"""
+    text = f"""
 💳 Paiement en SOL
 
 Adresse :
@@ -45,14 +45,15 @@ Montant :
 🧾 MEMO OBLIGATOIRE :
 {memo}
 
-⚠️ Sans le memo, le paiement est perdu.
+⏳ Vérification du paiement...
 """
-        await query.edit_message_text(text)
+    await query.edit_message_text(text)
 
-app = ApplicationBuilder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(button_handler))
-
-print("Bot prêt.")
-app.run_polling()
+    # SIMULATION paiement
+    if await payment_received(memo):
+        filename = generate_txt(memo)
+        await context.bot.send_document(
+            chat_id=user_id,
+            document=open(filename, "rb")
+        )
 
