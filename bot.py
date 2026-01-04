@@ -1,23 +1,17 @@
 import uuid
-from solana_check import payment_received
-from telegram import InputFile
 import os
+from solana_check import payment_received
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    CallbackQueryHandler,
-    ContextTypes
-)
-from database import add_user
-
-import os
 from telegram import InputFile
-from solana_check import payment_received
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from database import add_user
 
 TOKEN = "8254959529:AAFWi22T4M3sjBpOw1DX6bJ6fVZiGEmzTLw"
 SOLANA_ADDRESS = "9SoDErVydBbUeZe66w26HzPyWHdebuevukFgPgQwvtV6"
 
+# -------------------------
+# Fonctions utilitaires
+# -------------------------
 def generate_memo(user_id):
     return f"ZK-{user_id}-{uuid.uuid4().hex[:6]}"
 
@@ -41,6 +35,9 @@ Ce fichier est strictement personnel.
     print(f"[DEBUG] Fichier créé : {filename}")
     return filename
 
+# -------------------------
+# Commande /start
+# -------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("💳 Acheter la formation (1€)", callback_data="buy")]
@@ -50,14 +47,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def button_handler
-if query.data == "buy":
-    user_id = query.from_user.id
-    memo = generate_memo(user_id)
+# -------------------------
+# Gestion bouton
+# -------------------------
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
-    add_user(user_id, memo)
+    if query.data == "buy":
+        user_id = query.from_user.id
+        memo = generate_memo(user_id)
+        add_user(user_id, memo)
 
-    text = f"""
+        text = f"""
 💳 Paiement en SOL
 
 Adresse :
@@ -71,22 +73,22 @@ Montant :
 
 ⏳ Vérification du paiement...
 """
-    await query.edit_message_text(text)
+        await query.edit_message_text(text)
 
-# SIMULATION paiement
-if await payment_received(memo):
-    filename = generate_txt(memo)
-    await context.bot.send_document(
-        chat_id=user_id,
-        document=open(filename, "rb")
-    )
-    print(f"[DEBUG] Fichier envoyé à {user_id}")
+        # SIMULATION paiement
+        if await payment_received(memo):
+            filename = generate_txt(memo)
+            await context.bot.send_document(
+                chat_id=user_id,
+                document=open(filename, "rb")
+            )
+            print(f"[DEBUG] Fichier envoyé à {user_id}")
 
-    # SIMULATION paiement
-    if await payment_received(memo):
-        filename = generate_txt(memo)
-        await context.bot.send_document(
-            chat_id=user_id,
-            document=open(filename, "rb")
-        )
+# -------------------------
+# Main
+# -------------------------
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(button_handler))
+app.run_polling()
 
