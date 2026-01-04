@@ -1,0 +1,58 @@
+import uuid
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    CallbackQueryHandler,
+    ContextTypes
+)
+from database import add_user
+
+TOKEN = "8254959529:AAFWi22T4M3sjBpOw1DX6bJ6fVZiGEmzTLw"
+SOLANA_ADDRESS = "9SoDErVydBbUeZe66w26HzPyWHdebuevukFgPgQwvtV6"
+
+def generate_memo(user_id):
+    return f"ZK-{user_id}-{uuid.uuid4().hex[:6]}"
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("💳 Acheter la formation (1€)", callback_data="buy")]
+    ]
+    await update.message.reply_text(
+        "🎓 Formation privée\nPrix : 1€ en SOL",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    if query.data == "buy":
+        user_id = query.from_user.id
+        memo = generate_memo(user_id)
+
+        add_user(user_id, memo)
+
+        text = f"""
+💳 Paiement en SOL
+
+Adresse :
+{SOLANA_ADDRESS}
+
+Montant :
+≈ 1€
+
+🧾 MEMO OBLIGATOIRE :
+{memo}
+
+⚠️ Sans le memo, le paiement est perdu.
+"""
+        await query.edit_message_text(text)
+
+app = ApplicationBuilder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CallbackQueryHandler(button_handler))
+
+print("Bot prêt.")
+app.run_polling()
+
